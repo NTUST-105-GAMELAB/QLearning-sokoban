@@ -26,11 +26,13 @@ public class Main : MonoBehaviour {
 	// The position of point2.
 	private int point2_x, point2_z;
 
+	//for AI.
+	readonly int maxRecursive = 50;
+
 	// Use this for initialization
 	void Start() {
 		// Initial
 		mapSize = 10;
-		//boxPos_1 = new Vector3(2, 2, 2);
 		box1_x = 2;
 		box1_z = 2;
 		box1_next_x = box1_x;
@@ -39,8 +41,8 @@ public class Main : MonoBehaviour {
 		player_z = 1;
 		player_next_x = player_x;
 		player_next_z = player_z;
-		point1_x = 8;
-		point1_z = 8;
+		point1_x = 6;
+		point1_z = 7;
 		//point2_x = 5;
 		//point2_z = 6;
 
@@ -82,7 +84,7 @@ public class Main : MonoBehaviour {
 	// Update is called once per frame
 	void Update() {
 		if (Input.GetKeyDown(KeyCode.Space)) {
-			AI(10000, 20);
+			AI(10000, maxRecursive);
 		}
 
 		if (Input.GetKeyDown(KeyCode.A)) {
@@ -93,9 +95,16 @@ public class Main : MonoBehaviour {
 			ReStart();
 		}
 
+		if (Input.GetKeyDown(KeyCode.X)) {
+			StartCoroutine(SlowShow());
+		}
+
 		map[box1_x][box1_z].spotType = Spot.SPOT_TYPE.BOXOFF;
 		map[point1_x][point1_z].spotType = Spot.SPOT_TYPE.POINT;
 		map[player_x][player_z].spotType = Spot.SPOT_TYPE.START;
+		if (box1_x == point1_x && box1_z == point1_z) {
+			map[box1_x][box1_z].spotType = Spot.SPOT_TYPE.BOXON;
+		}
 
 		// When the player move... 
 		if (Input.GetKeyDown(KeyCode.UpArrow)) {
@@ -111,63 +120,6 @@ public class Main : MonoBehaviour {
 			showQ(Action.Left);
 		}
 
-		//// Player can move to there or not.
-		//if (map[player_next_x][player_next_z].spotType != Spot.SPOT_TYPE.WALL &&
-		//	map[player_next_x][player_next_z].spotType != Spot.SPOT_TYPE.BOXOFF &&
-		//	map[player_next_x][player_next_z].spotType != Spot.SPOT_TYPE.BOXON) {
-		//	map[player_x][player_z].spotType = Spot.SPOT_TYPE.FLOOR;
-		//	player_x = player_next_x;
-		//	player_z = player_next_z;
-
-		//	// Move the box.
-		//}
-		//else if (map[player_next_x][player_next_z].spotType == Spot.SPOT_TYPE.BOXOFF ||
-		//		  map[player_next_x][player_next_z].spotType == Spot.SPOT_TYPE.BOXON) {
-		//	// box
-		//	box1_next_x = box1_x + (player_next_x - player_x);
-		//	box1_next_z = box1_z + (player_next_z - player_z);
-
-		//	if (map[box1_next_x][box1_next_z].spotType != Spot.SPOT_TYPE.WALL &&
-		//		map[box1_next_x][box1_next_z].spotType != Spot.SPOT_TYPE.POINT) {
-		//		box1_x = box1_next_x;
-		//		box1_z = box1_next_z;
-		//		map[box1_x][box1_z].spotType = Spot.SPOT_TYPE.BOXOFF;
-
-		//		// player
-		//		map[player_x][player_z].spotType = Spot.SPOT_TYPE.FLOOR;
-		//		player_x = player_next_x;
-		//		player_z = player_next_z;
-
-		//	}
-		//	else if (map[box1_next_x][box1_next_z].spotType == Spot.SPOT_TYPE.POINT) {
-		//		box1_x = box1_next_x;
-		//		box1_z = box1_next_z;
-		//		map[box1_x][box1_z].spotType = Spot.SPOT_TYPE.BOXON;
-
-		//		// player
-		//		map[player_x][player_z].spotType = Spot.SPOT_TYPE.FLOOR;
-		//		player_x = player_next_x;
-		//		player_z = player_next_z;
-
-		//	}
-		//	else {
-		//		box1_next_x = box1_x;
-		//		box1_next_z = box1_z;
-		//	}
-		//}
-
-		//// Show the point.
-		//if (map[point1_x][point1_z].spotType == Spot.SPOT_TYPE.FLOOR) {
-		//	map[point1_x][point1_z].spotType = Spot.SPOT_TYPE.POINT;
-
-		//}
-		////else if (map[point2_x][point2_z].spotType == Spot.SPOT_TYPE.FLOOR) {
-		////	map[point2_x][point2_z].spotType = Spot.SPOT_TYPE.POINT;
-		////}
-
-		//player_next_x = player_x;
-		//player_next_z = player_z;
-		//map[player_x][player_z].spotType = Spot.SPOT_TYPE.START;
 	}
 
 	#region forAI.
@@ -190,12 +142,14 @@ public class Main : MonoBehaviour {
 			this.position_z = position_z;
 		}
 
+		//return the next to direct,when player in this position.
 		public Action bestDirect() {
 			if (rewards.All(x => x.Equals(rewards.First())))
 				return (Action)Random.Range(0, Enum.GetNames(typeof(Action)).Length);
 			return (Action)rewards.ToList().IndexOf(rewards.Max());
 		}
 
+		//return the best reward, in this postition.
 		public float bestReward() {
 			return rewards.Max();
 		}
@@ -227,6 +181,7 @@ public class Main : MonoBehaviour {
 		Rigth
 	}
 
+	//let ai to train MDP.
 	public void AI(int maxRound, int maxTime) {
 		//run maxRAnge times.
 		for (var round = 0; round < maxRound; ++round) {
@@ -243,6 +198,7 @@ public class Main : MonoBehaviour {
 		Debug.Log("done");
 	}
 
+	//return reward, when do some action.
 	public float Reward() {
 		int deltaPlayer_x = player_next_x - player_x;
 		int deltaPlayer_z = player_next_z - player_z;
@@ -251,108 +207,44 @@ public class Main : MonoBehaviour {
 			if ((box1_x + deltaPlayer_x) == point1_x && (box1_z + deltaPlayer_z) == point1_z) {
 				return 1.0f;
 			}
+			//push the box to wall.
+			if (map[box1_x + deltaPlayer_x][box1_z + deltaPlayer_z].spotType == Spot.SPOT_TYPE.WALL)
+				return -1.0f;
 			//push the box.
-			return -0.1f;
+			return -0.05f;
 		}
 		//go to the wall.
-		if(map[player_next_x][player_next_z].spotType ==Spot.SPOT_TYPE.WALL) {
-			return -0.2f;
+		if (map[player_next_x][player_next_z].spotType == Spot.SPOT_TYPE.WALL) {
+			return -0.5f;
 		}
 		//don't push box.
-		return -0.15f;
+		return -0.1f;
 	}
 
-	//move player for ai.
+	//move player for ai and update bellmanfunction.
 	public void Move(Action action) {
 		switch (action) {
 			case Action.Up:
 				player_next_z = player_z + 1;
 				BellmanFunction(Action.Up);
-				if (CanWalk(player_next_x, player_next_z)) {
-					//bellmanfunction();
-					MoveBox();
-				}
+				collisionDetection();
 				break;
 			case Action.Down:
 				player_next_z = player_z - 1;
 				BellmanFunction(Action.Down);
-				if (CanWalk(player_next_x, player_next_z)) {
-					//bellmanfunction();
-					MoveBox();
-				}
+				collisionDetection();
 				break;
 			case Action.Rigth:
 				player_next_x = player_x + 1;
 				BellmanFunction(Action.Rigth);
-				if (CanWalk(player_next_x, player_next_z)) {
-					//bellmanfunction();
-					MoveBox();
-				}
+				collisionDetection();
 				break;
 			case Action.Left:
 				player_next_x = player_x - 1;
 				BellmanFunction(Action.Left);
-				if (CanWalk(player_next_x, player_next_z)) {
-					//bellmanfunction();
-					MoveBox();
-				}
+				collisionDetection();
 				break;
 		}
-	}
-
-	//can walk or not.
-	public bool CanWalk(int wantToX, int wantToY) {
-		// Player can move to there or not.
-		if (map[player_next_x][player_next_z].spotType != Spot.SPOT_TYPE.WALL) {
-			return true;
-		}
-		return false;
-	}
-
-	//move box or not.
-	public void MoveBox() {
-		if (map[player_next_x][player_next_z].spotType == Spot.SPOT_TYPE.BOXOFF ||
-			  map[player_next_x][player_next_z].spotType == Spot.SPOT_TYPE.BOXON) {
-			// box
-			box1_next_x = box1_x + (player_next_x - player_x);
-			box1_next_z = box1_z + (player_next_z - player_z);
-
-			if (map[box1_next_x][box1_next_z].spotType != Spot.SPOT_TYPE.WALL &&
-				map[box1_next_x][box1_next_z].spotType != Spot.SPOT_TYPE.POINT) {
-				box1_x = box1_next_x;
-				box1_z = box1_next_z;
-				map[box1_x][box1_z].spotType = Spot.SPOT_TYPE.BOXOFF;
-
-				// player
-				map[player_x][player_z].spotType = Spot.SPOT_TYPE.FLOOR;
-				player_x = player_next_x;
-				player_z = player_next_z;
-
-			}
-			else if (map[box1_next_x][box1_next_z].spotType == Spot.SPOT_TYPE.POINT) {
-				box1_x = box1_next_x;
-				box1_z = box1_next_z;
-				map[box1_x][box1_z].spotType = Spot.SPOT_TYPE.BOXON;
-
-				// player
-				map[player_x][player_z].spotType = Spot.SPOT_TYPE.FLOOR;
-				player_x = player_next_x;
-				player_z = player_next_z;
-
-			}
-			else {
-				box1_next_x = box1_x;
-				box1_next_z = box1_z;
-			}
-		}
-
-		map[player_x][player_z].spotType = Spot.SPOT_TYPE.FLOOR;
-		player_x = player_next_x;
-		player_z = player_next_z;
-
-		player_next_x = player_x;
-		player_next_z = player_z;
-		map[player_x][player_z].spotType = Spot.SPOT_TYPE.START;
 	}
 
 	//calculate bellman function.
@@ -375,6 +267,7 @@ public class Main : MonoBehaviour {
 		player_z = 1;
 		player_next_x = player_x;
 		player_next_z = player_z;
+
 		// Set the spot be the start point.
 		map[player_x][player_z].spotType = Spot.SPOT_TYPE.START;
 		// Set the spot be the box point.
@@ -391,43 +284,25 @@ public class Main : MonoBehaviour {
 					RewardMap[i, j].isWall();
 			}
 		}
-		//for (int i = 1; i < mapSize - 1; ++i) {
-		//	RewardMap[i, 8].modifyReward(Action.Up, float.MinValue);
-		//	RewardMap[i, 1].modifyReward(Action.Down, float.MinValue);
-		//	RewardMap[1, i].modifyReward(Action.Left, float.MinValue);
-		//	RewardMap[8, i].modifyReward(Action.Rigth, float.MinValue);
-		//}
 	}
 
 	public void showMove(Action action) {
 		switch (action) {
 			case Action.Up:
 				player_next_z = player_z + 1;
-				test();
-				//if (CanWalk(player_next_x, player_next_z)) {
-				//	MoveBox();
-				//}
+				collisionDetection();
 				break;
 			case Action.Down:
 				player_next_z = player_z - 1;
-				test();
-				//if (CanWalk(player_next_x, player_next_z)) {
-				//	MoveBox();
-				//}
+				collisionDetection();
 				break;
 			case Action.Rigth:
 				player_next_x = player_x + 1;
-				test();
-				//if (CanWalk(player_next_x, player_next_z)) {
-				//	MoveBox();
-				//}
+				collisionDetection();
 				break;
 			case Action.Left:
 				player_next_x = player_x - 1;
-				test();
-				//if (CanWalk(player_next_x, player_next_z)) {
-				//	MoveBox();
-				//}
+				collisionDetection();
 				break;
 		}
 	}
@@ -435,7 +310,7 @@ public class Main : MonoBehaviour {
 	public void show() {
 		Debug.Log("test");
 		int i = 0;
-		while (i < 20) {
+		while (i < maxRecursive) {
 			Debug.Log(RewardMap[player_x, player_z].bestDirect());
 			showMove(RewardMap[player_x, player_z].bestDirect());
 			if (box1_x == point1_x && box1_z == point1_z)
@@ -444,6 +319,19 @@ public class Main : MonoBehaviour {
 		}
 		Debug.Log(player_x + " " + player_z);
 		Debug.Log(box1_x + " " + box1_z);
+	}
+
+	//show the result, every stap with 1sec period.
+	public IEnumerator<WaitForSecondsRealtime> SlowShow() {
+		Debug.Log("test");
+		int i = 0;
+		while (i < maxRecursive) {
+			showMove(RewardMap[player_x, player_z].bestDirect());
+			if (box1_x == point1_x && box1_z == point1_z)
+				break;
+			i++;
+			yield return new WaitForSecondsRealtime(0.7f);
+		}
 	}
 
 	public void showQ(Action action) {
@@ -457,7 +345,8 @@ public class Main : MonoBehaviour {
 		Debug.Log(QValueMap);
 	}
 
-	public void test() {
+	//detect collision.
+	public void collisionDetection() {
 		// Player can move to there or not.
 		if (map[player_next_x][player_next_z].spotType != Spot.SPOT_TYPE.WALL &&
 			map[player_next_x][player_next_z].spotType != Spot.SPOT_TYPE.BOXOFF &&
@@ -508,9 +397,6 @@ public class Main : MonoBehaviour {
 			map[point1_x][point1_z].spotType = Spot.SPOT_TYPE.POINT;
 
 		}
-		//else if (map[point2_x][point2_z].spotType == Spot.SPOT_TYPE.FLOOR) {
-		//	map[point2_x][point2_z].spotType = Spot.SPOT_TYPE.POINT;
-		//}
 
 		player_next_x = player_x;
 		player_next_z = player_z;
